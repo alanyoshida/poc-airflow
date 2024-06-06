@@ -1,0 +1,6 @@
+metallb:
+  IPAddressPool:
+    addresses:
+      - 172.18.253.100-172.18.253.250
+  example:
+    enabled: false
