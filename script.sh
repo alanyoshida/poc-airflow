@@ -60,7 +60,7 @@ configure_metallb (){
           bold "Configuring metallb"
           DOCKER_CIDR=$(docker network inspect kind -f '{{(index .IPAM.Config 0).Subnet}}')
           DOCKER_CIDR_2_OCTECTS=$(echo $DOCKER_CIDR | sed -E 's/([0-9]{0,3}\.[0-9]{1,3}).*/\1/')
-          yq -i -y ".metallb.IPAddressPool.addresses[0]=\"$DOCKER_CIDR_2_OCTECTS.253.100-$DOCKER_CIDR_2_OCTECTS.253.250\"" charts/metallb/values.yaml
+          yq -i -o yaml ".metallb.IPAddressPool.addresses[0]=\"$DOCKER_CIDR_2_OCTECTS.253.100-$DOCKER_CIDR_2_OCTECTS.253.250\"" charts/metallb/values.yaml
           kubectl apply -f cluster-configs/metallb.yaml
           info "Waiting for ready condition"
           kubectl wait -n metallb-system --for=condition=ready pod --field-selector=status.phase!=Succeeded --timeout=1m
