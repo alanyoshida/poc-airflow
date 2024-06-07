@@ -18,6 +18,7 @@ check_dependencies(){
     check docker
     check helm
     check dnsmasq
+    check cilium
 }
 
 up (){
