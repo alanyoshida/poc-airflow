@@ -111,7 +111,7 @@ setup (){
     configure_dnsmasq
 
     # K8S CONFIG
-    # up
+    up
 }
 
 install_gum() {
