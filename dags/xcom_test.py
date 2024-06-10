@@ -28,7 +28,7 @@ with DAG(
         number = 3
         ti.xcom_push(key="number", value=number)
         # pprint(kwargs)
-        print("PART 1 - SEND NUMBER {number}")
+        print(f"PART 1 - SEND NUMBER {number}")
         return "LOG DO RETORNO"
 
     part1 = PythonOperator(task_id="part1", python_callable=part1)
@@ -36,8 +36,8 @@ with DAG(
 
     def part2(ti, **kwargs):
         # pprint(kwargs)
-        ti.xcom_pull(key="number", task_ids="part1")
-        print(f"PART 2 = RECEIVED NUMBER")
+        number = ti.xcom_pull(key="number", task_ids="part1")
+        print(f"PART 2 = RECEIVED NUMBER {number}")
         return "LOG DO RETORNO"
 
     part2 = PythonOperator(task_id="part2", python_callable=part2)
