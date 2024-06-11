@@ -41,66 +41,38 @@ with DAG(
   request_resource = PythonOperator(task_id="request_resource", python_callable=request_resource)
 
   def call_opa(ti, **kwargs):
-
     now = datetime.now()
-    dt_string = now.strftime("%d/%m/%Y-%H:%M:%S")
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     request_body = ti.xcom_pull(key="request_body", task_ids="request_resource")
     # VERIFY IN OPA IF IT ALLOW
-    print(f"LOG=INFO DATE={dt_string} REQUEST_BODY:{request_body}")
+    print(f"LOG=INFO DATE={dt_string} FN=call_opa REQUEST_BODY:{request_body}")
     allow_response = requests.post("http://opa.default.svc.cluster.local:8181/v1/data/example/allow",
                             headers={"Content-Type":"application/json"},
                             data=request_body)
-    print(f"LOG=INFO DATE={dt_string} /v1/data/example/allow RESPONSE={allow_response.json()}")
-    return request_body
+    print(f"LOG=INFO DATE={dt_string} FN=call_opa ROUTE=/v1/data/example/allow RESPONSE={allow_response.json()}")
+    return allow_response.json()
 
   call_opa = PythonOperator(task_id="call_opa", python_callable=call_opa)
 
   def call_violation(ti, **kwargs):
     now = datetime.now()
-    dt_string = now.strftime("%d/%m/%Y-%H:%M:%S")
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     request_body = ti.xcom_pull(key="request_body", task_ids="request_resource")
     # VERIFY VIOLATION IN OPA
     violations_response = requests.post("http://opa.default.svc.cluster.local:8181/v1/data/example/violation",
                             headers={"Content-Type":"application/json"},
                             data=request_body)
-    print(f"LOG=INFO DATE={dt_string} /v1/data/example/violation RESPONSE={violations_response.json()}")
+    print(f"LOG=INFO DATE={dt_string} FN=call_violation ROUTE=/v1/data/example/violation RESPONSE={violations_response.json()}")
+    return violations_response.json()
+
   call_violation = PythonOperator(task_id="call_violation", python_callable=call_violation)
 
-  request_resource >> call_opa >> call_violation
+  def save_violation(ti, **kwargs):
+    now = datetime.now()
+    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
+    violations_response = ti.xcom_pull(key="return_value", task_ids="call_violation")
+    print(f"LOG=INFO DATE={dt_string} FN=save_violation RESPONSE={violations_response}")
 
-# import requests
-# import json
-# from datetime import datetime
+  save_violation = PythonOperator(task_id="save_violation", python_callable=save_violation)
 
-# def main():
-#     now = datetime.now()
-#     dt_string = now.strftime("%d/%m/%Y-%H:%M:%S")
-
-#     # REQUEST DATA TO VALIDATE AGAINST OPA SERVER
-#     input = requests.get("http://golang-service.default.svc.cluster.local/servers",
-#                          headers={"Content-Type":"application/json"},)
-#     print(f"LOG=INFO DATE={dt_string} /servers RESPONSE:{input.json()}")
-
-#     # PREPARE REQUEST BODY
-#     request_body = json.dumps({"input": input.json()},ensure_ascii=False)
-
-#     # VERIFY IN OPA IF IT ALLOW
-#     print(f"LOG=INFO DATE={dt_string} REQUEST_BODY:{request_body}")
-#     allow_response = requests.post("http://opa.default.svc.cluster.local:8181/v1/data/example/allow",
-#                             headers={"Content-Type":"application/json"},
-#                             data=request_body)
-#     print(f"LOG=INFO DATE={dt_string} /v1/data/example/allow RESPONSE={allow_response.json()}")
-
-#     # VERIFY VIOLATION IN OPA
-#     violations_response = requests.post("http://opa.default.svc.cluster.local:8181/v1/data/example/violation",
-#                             headers={"Content-Type":"application/json"},
-#                             data=request_body)
-#     print(f"LOG=INFO DATE={dt_string} /v1/data/example/violation RESPONSE={violations_response.json()}")
-
-#     # Execute function violation
-#     fission_call = requests.post("http://router.default.svc.cluster.local/violation-pkg",
-#                             headers={"Content-Type":"application/json"},
-#                             json=violations_response.json())
-#     print(f"LOG=INFO DATE={dt_string} FUNCTION=opa-violation RESPONSE_STATUS={fission_call.status_code} RESPONSE={fission_call.content}")
-
-#     return allow_response.json(), allow_response.status_code
+  request_resource >> call_opa >> call_violation >> save_violation
