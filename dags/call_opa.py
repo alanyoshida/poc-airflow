@@ -7,10 +7,12 @@ import json
 import pendulum
 from pprint import pprint
 from datetime import datetime
+import time
 from airflow.models.dag import DAG
 from airflow.operators.python import (
     PythonOperator,
 )
+from airflow.providers.common.sql.operators.sql import SQLExecuteQueryOperator
 
 log = logging.getLogger(__name__)
 
@@ -67,12 +69,22 @@ with DAG(
 
   call_violation = PythonOperator(task_id="call_violation", python_callable=call_violation)
 
-  def save_violation(ti, **kwargs):
-    now = datetime.now()
-    dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
-    violations_response = ti.xcom_pull(key="return_value", task_ids="call_violation")
-    print(f"LOG=INFO DATE={dt_string} FN=save_violation RESPONSE={violations_response}")
-
-  save_violation = PythonOperator(task_id="save_violation", python_callable=save_violation)
+  save_violation = SQLExecuteQueryOperator(
+      task_id="save_violation",
+      conn_id="postgres_default",
+      sql="INSERT INTO violations (date, violations, policies, severity, resource_type) VALUES (%(date)s,%(violations)s,%(policies)s,%(severity)s,%(resource_type)s)",
+      parameters={
+        "date": time.time(),
+        "violations": "{{ ti.xcom_pull(task_ids='call_violation', key='id') }}",
+        "policies": json.dumps({
+          'results': [
+            "SSH",
+            "TELNET"
+          ]
+        }),
+        "severity": "HIGH",
+        "resource_type": "NETWORK"
+      },
+  )
 
   request_resource >> call_opa >> call_violation >> save_violation
