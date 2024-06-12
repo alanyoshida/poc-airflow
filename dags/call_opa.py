@@ -74,7 +74,7 @@ with DAG(
       conn_id="postgres_default",
       sql="INSERT INTO violations (date, violations, policies, severity, resource_type) VALUES (NOW(),%(violations)s,%(policies)s,%(severity)s,%(resource_type)s)",
       parameters={
-        "violations": "{{ ti.xcom_pull(task_ids='call_violation', key='id') }}",
+        "violations": "{{ ti.xcom_pull(task_ids='call_violation', key='return_value') }}",
         "policies": json.dumps({
           'results': [
             "SSH",
