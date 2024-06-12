@@ -72,9 +72,8 @@ with DAG(
   save_violation = SQLExecuteQueryOperator(
       task_id="save_violation",
       conn_id="postgres_default",
-      sql="INSERT INTO violations (date, violations, policies, severity, resource_type) VALUES (%(date)s,%(violations)s,%(policies)s,%(severity)s,%(resource_type)s)",
+      sql="INSERT INTO violations (date, violations, policies, severity, resource_type) VALUES (NOW(),%(violations)s,%(policies)s,%(severity)s,%(resource_type)s)",
       parameters={
-        "date": time.time(),
         "violations": "{{ ti.xcom_pull(task_ids='call_violation', key='id') }}",
         "policies": json.dumps({
           'results': [
