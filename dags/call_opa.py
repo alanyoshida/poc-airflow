@@ -65,7 +65,7 @@ with DAG(
                             headers={"Content-Type":"application/json"},
                             data=request_body)
     print(f"LOG=INFO DATE={dt_string} FN=call_violation ROUTE=/v1/data/example/violation RESPONSE={violations_response.json()}")
-    return violations_response.json()
+    return json.dumps(violations_response)
 
   call_violation = PythonOperator(task_id="call_violation", python_callable=call_violation)
 
@@ -76,7 +76,7 @@ with DAG(
       parameters={
         "violations": "{{ ti.xcom_pull(task_ids='call_violation', key='return_value') }}",
         "policies": json.dumps({
-          'results': [
+          "results": [
             "SSH",
             "TELNET"
           ]
