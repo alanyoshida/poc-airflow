@@ -93,7 +93,7 @@ with DAG(
                             headers={"Content-Type":"application/json"},
                             data=request_body)
     admin_count_json = admin_count.json()
-    print(f"LOG=INFO DATE={dt_string} FN=call_violation ROUTE=/v1/data/iam/* RESPONSE={violations_response.json()}")
+    print(f"LOG=INFO DATE={dt_string} FN=call_violation ROUTE=/v1/data/iam/*")
 
     total_violations = int(admin_count_json["result"]) + int(owner_count_json["result"])
     ti.xcom_push(key="total_violations", value=total_violations)
