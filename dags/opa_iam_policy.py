@@ -76,28 +76,53 @@ with DAG(
     dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
     request_body = ti.xcom_pull(key="request_body", task_ids="request_resource")
     # VERIFY VIOLATION IN OPA
-    violations_response = requests.post("http://opa.default.svc.cluster.local:8181/v1/data/iam/has_admin",
+    has_admin = requests.post("http://opa.default.svc.cluster.local:8181/v1/data/iam/has_admin",
                             headers={"Content-Type":"application/json"},
                             data=request_body)
-    print(f"LOG=INFO DATE={dt_string} FN=call_violation ROUTE=/v1/data/iam/violation RESPONSE={violations_response.json()}")
-    return json.dumps(violations_response.json())
+    has_admin_json = has_admin.json()
+
+    has_owner = requests.post("http://opa.default.svc.cluster.local:8181/v1/data/iam/has_owner",
+                            headers={"Content-Type":"application/json"},
+                            data=request_body)
+    has_owner_json = has_owner.json()
+    owner_count = requests.post("http://opa.default.svc.cluster.local:8181/v1/data/iam/owner_count",
+                            headers={"Content-Type":"application/json"},
+                            data=request_body)
+    owner_count_json = owner_count.json()
+    admin_count = requests.post("http://opa.default.svc.cluster.local:8181/v1/data/iam/admin_count",
+                            headers={"Content-Type":"application/json"},
+                            data=request_body)
+    admin_count_json = admin_count.json()
+    print(f"LOG=INFO DATE={dt_string} FN=call_violation ROUTE=/v1/data/iam/* RESPONSE={violations_response.json()}")
+
+    total_violations = int(admin_count_json["result"]) + int(owner_count_json["result"])
+    ti.xcom_push(key="total_violations", value=total_violations)
+
+    violations = {
+      "admin_count": admin_count_json["result"],
+      "owner_count": owner_count_json["result"],
+      "has_admin": has_admin_json,
+      "has_owner": has_owner_json,
+      "total_violations": total_violations
+    }
+    return json.dumps(violations)
 
   call_violation = PythonOperator(task_id="call_violation", python_callable=call_violation)
 
   save_violation = SQLExecuteQueryOperator(
       task_id="save_violation",
       conn_id="postgres_default",
-      sql="INSERT INTO violations (date, violations, policies, severity, resource_type) VALUES (NOW(),%(violations)s,%(policies)s,%(severity)s,%(resource_type)s)",
+      sql="INSERT INTO violations (date, violations, policies, severity, resource_type, total_violations) VALUES (NOW(),%(violations)s,%(policies)s,%(severity)s,%(resource_type)s)",
       parameters={
         "violations": "{{ ti.xcom_pull(task_ids='call_violation', key='return_value') }}",
         "policies": json.dumps({
           "results": [
-            "ADMIN",
-            "OWNER"
+            "ADMINISTRATIVE_ROLES"
           ]
         }),
         "severity": "HIGH",
-        "resource_type": "IAM"
+        "resource_type": "IAM",
+        "total_violations": "{{ ti.xcom_pull(task_ids='call_violation', key='total_violations') }}",
       },
   )
 
