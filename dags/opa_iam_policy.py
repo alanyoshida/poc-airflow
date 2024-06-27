@@ -122,7 +122,7 @@ with DAG(
         }),
         "severity": "HIGH",
         "resource_type": "IAM",
-        "total_violations": {{ ti.xcom_pull(task_ids='call_violation', key='total_violations') }},
+        "total_violations": "{{ ti.xcom_pull(task_ids='call_violation', key='total_violations') }}",
       },
   )
 
