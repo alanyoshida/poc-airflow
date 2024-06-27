@@ -34,7 +34,7 @@ with DAG(
     dt_string = now.strftime("%d/%m/%Y-%H:%M:%S")
 
     credentials = service_account.Credentials.from_service_account_file(
-        filename='/opt/airflow/dags/gcp.json',
+        filename='/home/airflow/gcp.json',
         scopes=['https://www.googleapis.com/auth/cloud-platform'])
 
     service = googleapiclient.discovery.build(
