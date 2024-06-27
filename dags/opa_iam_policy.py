@@ -48,10 +48,10 @@ with DAG(
     # REQUEST DATA TO VALIDATE AGAINST OPA SERVER
     # input = requests.get("http://golang-service.default.svc.cluster.local/servers",
     #                     headers={"Content-Type":"application/json"},)
-    print(f"LOG=INFO DATE={dt_string} /servers RESPONSE:{input.json()} PROJECT={project}")
+    print(f"LOG=INFO DATE={dt_string} /servers RESPONSE:{json.dumps(input)} PROJECT={project}")
 
     # PREPARE REQUEST BODY
-    request_body = json.dumps({"input": input.json()},ensure_ascii=False)
+    request_body = json.dumps({"input": json.dumps(input)},ensure_ascii=False)
     ti.xcom_push(key="request_body", value=request_body)
     return request_body
 
